@@ -1,0 +1,195 @@
+
+--*this is a simplified version of the game only having four houses
+-- the ctlspec and its negation both verify 
+
+
+MODULE main
+
+VAR 
+    board : array 1..4 of -1..2;
+    cur_pos : 1..4;
+    second_visited : boolean;
+    move : {1, 2, 3, 4};
+    total_moves : 0..3;
+
+--* board indexes look like this:
+--* 3 4
+--* 1 2
+
+DEFINE
+    upable := cur_pos < 3;
+    downable := cur_pos > 2;
+    leftable := cur_pos mod 2 = 0;
+    rightable := cur_pos mod 2 = 1;
+
+    legal_up := upable & board[cur_pos + 2] = 0;
+    legal_down := downable & board [cur_pos - 2] = 0;
+    legal_left := leftable & board [cur_pos - 1] = 0;
+    legal_right := rightable & board [cur_pos + 1] = 0;
+
+    up := move = 1;
+    right := move = 2;
+    down := move = 3;
+    left := move = 4;
+
+--* initial board looks like this: 
+--* ...  2
+--*  1  ...
+INIT 
+    cur_pos = 1;
+INIT
+    board[1] = 1;
+INIT
+    board[2] = 0;
+INIT
+    board[3] = 0;
+INIT
+    board[4] = 2;
+INIT
+    second_visited = FALSE;
+INIT
+    total_moves = 0;
+
+
+TRANS
+    up -> (legal_up & 
+            next(total_moves) = total_moves + 1 &
+            next(cur_pos) = cur_pos + 2 &
+            next(second_visited) = 
+                case
+                    board[cur_pos + 2] = 2 : TRUE;
+                    TRUE : FALSE;
+                esac &
+            --next(board[cur_pos + 2]) = 1 &
+            next(board[1]) = 
+                case 
+                    cur_pos + 2 = 1 : 1;
+                    TRUE :  board[1];
+                esac &
+
+                next(board[2]) = 
+                case 
+                    cur_pos + 2 = 1 : 2;
+                    TRUE :  board[2];
+                esac &
+
+                next(board[3]) = 
+                case 
+                    cur_pos + 2 = 3 : 1;
+                    TRUE :  board[3];
+                esac &
+
+                next(board[4]) = 
+                case 
+                    cur_pos + 2 = 4 : 1;
+                    TRUE :  board[4];
+                esac
+            ); 
+
+TRANS
+    down -> (legal_down & 
+            next(total_moves) = total_moves + 1 &
+            next(cur_pos) = cur_pos - 2 &
+            next(second_visited) = 
+                case
+                    board[cur_pos - 2] = 2 : TRUE;
+                    TRUE : FALSE;
+                esac &
+            --next(board[cur_pos + 2]) = 1 &
+            next(board[1]) = 
+                case 
+                    cur_pos - 2 = 1 : 1;
+                    TRUE :  board[1];
+                esac &
+
+                next(board[2]) = 
+                case 
+                    cur_pos - 2 = 1 : 2;
+                    TRUE :  board[2];
+                esac &
+
+                next(board[3]) = 
+                case 
+                    cur_pos - 2 = 3 : 1;
+                    TRUE :  board[3];
+                esac &
+
+                next(board[4]) = 
+                case 
+                    cur_pos - 2 = 4 : 1;
+                    TRUE :  board[4];
+                esac
+            ); 
+
+TRANS
+    left -> (legal_left & 
+            next(total_moves) = total_moves + 1 &
+            next(cur_pos) = cur_pos - 1 &
+            next(second_visited) = 
+                case
+                    board[cur_pos - 1] = 2 : TRUE;
+                    TRUE : FALSE;
+                esac &
+            --next(board[cur_pos + 2]) = 1 &
+            next(board[1]) = 
+                case 
+                    cur_pos - 1 = 1 : 1;
+                    TRUE :  board[1];
+                esac &
+
+                next(board[2]) = 
+                case 
+                    cur_pos - 1 = 1 : 2;
+                    TRUE :  board[2];
+                esac &
+
+                next(board[3]) = 
+                case 
+                    cur_pos - 1 = 3 : 1;
+                    TRUE :  board[3];
+                esac &
+
+                next(board[4]) = 
+                case 
+                    cur_pos - 1 = 4 : 1;
+                    TRUE :  board[4];
+                esac
+            ); 
+
+TRANS
+    right -> (legal_right & 
+            next(total_moves) = total_moves + 1 &
+            next(cur_pos) = cur_pos + 1 &
+            next(second_visited) = 
+                case
+                    board[cur_pos + 1] = 2 : TRUE;
+                    TRUE : FALSE;
+                esac &
+            --next(board[cur_pos + 2]) = 1 &
+            next(board[1]) = 
+                case 
+                    cur_pos + 1 = 1 : 1;
+                    TRUE :  board[1];
+                esac &
+
+                next(board[2]) = 
+                case 
+                    cur_pos + 1 = 1 : 2;
+                    TRUE :  board[2];
+                esac &
+
+                next(board[3]) = 
+                case 
+                    cur_pos + 1 = 3 : 1;
+                    TRUE :  board[3];
+                esac &
+
+                next(board[4]) = 
+                case 
+                    cur_pos + 1 = 4 : 1;
+                    TRUE  : board[4];
+                esac
+            ); 
+
+CTLSPEC
+    AG  !(second_visited & (board[1] = 1 & board[2] = 1 & board[3] = 1 & board[4] = 1));

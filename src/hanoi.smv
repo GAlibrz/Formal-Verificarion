@@ -1,0 +1,75 @@
+MODULE main
+-- Hanoi problem with three poles (left, middle, right)
+-- and four ordered disks d1, d2, d3, d4, 
+-- disk d1 is the biggest one
+VAR
+  d1 : {left,middle,right};
+  d2 : {left,middle,right};
+  d3 : {left,middle,right};
+  d4 : {left,middle,right};
+  move : 1..4; -- possible moves
+DEFINE
+  move_d1 := move = 1;
+  move_d2 := move = 2;
+  move_d3 := move = 3;
+  move_d4 := move = 4;		
+
+-- di is clear iff di!=dj for every j>i
+  clear_d1 := d1 != d2 & d1 != d3 & 	d1 != d4;
+  clear_d2 := d2 != d3 & d2 != d4;
+  clear_d3 := d3 != d4;
+  clear_d4 := TRUE;
+	
+-- initially all items are on the left pole
+INIT
+  d1 = left & d2 = left & d3 = left & d4 = left;
+
+
+TRANS
+  move_d1 -> 
+	next(d1) != d1 &
+	next(d2) = d2 &
+	next(d3) = d3 & 
+	next(d4) = d4 &
+	clear_d1 &
+	next(d1) != d2 &
+	next(d1) != d3 &
+	next(d1) != d4
+
+TRANS
+  move_d2 -> 
+	next(d1) = d1 &
+	next(d2) != d2 &
+	next(d3) = d3 & 
+	next(d4) = d4 &
+	clear_d2 &
+	next(d2) != d3 &
+	next(d2) != d4
+
+TRANS
+  move_d3 -> 
+	next(d1) = d1 &
+	next(d2) = d2 &
+	next(d3) != d3 & 
+	next(d4) = d4 &
+	clear_d3 &
+	next(d3) != d4
+
+TRANS
+  move_d4 -> 
+	next(d1) = d1 &
+	next(d2) = d2 &
+	next(d3) = d3 & 
+	next(d4) != d4 &
+	clear_d4
+
+
+LTLSPEC
+  G ! (d1 = right & d2 = right & d3 = right & d4 = right)
+
+CTLSPEC
+  AG ! (d1 = right & d2 = right & d3 = right & d4 = right)
+
+-- spec to find a solution to the problem
+SPEC
+  ! EF (d1=right & d2=right & d3=right & d4=right)

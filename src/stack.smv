@@ -1,0 +1,203 @@
+-- This module should implement a simple stack data structure
+-- which can hold up to `5` numbers from the range `0..3`.
+-- The variable `size` is the current size of the stack, and
+-- the array `values` holds the contents of the stack.
+-- Specifically, `values[0], ..., values[size - 1]` are the
+-- elements of the stack from bottom to top, and the remaining
+-- values are unspecified. The two parameters `op` and `input`
+-- determine how the stack should behave during the current
+-- time step:
+--   * When `op = none`, then nothing should happen.
+--   * When `op = push`, the value currently in `input` should
+--     be pushed onto the stack if the stack is not full.
+--     Otherwise, nothing should happen.
+--   * When `op = pop`, the top value of the stack should be
+--     removed from the stack and its value should be written
+--     into the `output` variable during the *current* step.
+--     If the stack is empty, that value is unspecified.
+MODULE stack(op, input)
+VAR
+  size : 0..5;
+  values : array 0..4 of 0..3;
+
+ASSIGN
+  init(size) := 0;
+  next(size) :=
+    case
+      op = push & (size < 5) : size + 1;
+      op = pop  & (size > 0) : size - 1;
+      TRUE                   : size;
+    esac;
+  next(values[0]) := op = push & size = 0 ? input : values[0];
+  next(values[1]) := op = push & size = 1 ? input : values[1];
+  next(values[2]) := op = push & size = 2 ? input : values[2];
+  next(values[3]) := op = push & size = 3 ? input : values[3];
+  next(values[4]) := op = push & size = 4 ? input : values[4];
+
+DEFINE
+  output := size > 0 ? values[size - 1] : 0;
+
+MODULE main
+
+VAR
+  number : 0..3;
+  op : {push, pop, none};
+  s : stack(op, number);
+
+-- These frozen variables should be used in your CTL specifications.
+-- A frozen variable is nondeterministically picked for the initial
+-- state of the model and remains constant afterwards.
+FROZENVAR
+  some_number : 0..3;
+  some_size : 0..5;
+
+DEFINE
+  full := (s.size = 5);
+  empty := (s.size = 0);
+
+-- (a) The stack cannot be empty and full at the same time.
+CTLSPEC
+  AG !(empty & full)
+
+-- (b) There exists a path along which the stack is eventually always full.
+CTLSPEC
+  EF EG full
+
+-- (c) From any given point of time, there always exists a path in
+--     which the stack will be full.
+CTLSPEC
+  AG EF full
+
+-- (d) Pushing onto a non-full stack increases its size by 1.
+CTLSPEC
+  AG ((op = push & !full & s.size = some_size) ->
+        AX s.size = some_size + 1)
+
+-- (e) When some number is pushed onto a non-full stack,
+--     then in the next step the stack will be non-empty and
+--     its top element will be that number.
+CTLSPEC
+  AG ((op = push & !full & number = some_number) ->
+        AX (!empty & s.values[s.size - 1] = some_number))
+
+-- (f) A full stack remains full after a push operation.
+CTLSPEC
+  AG ((op = push & full) -> AX full)
+
+-- (g) Popping from a non-empty stack decreases its size by 1.
+CTLSPEC
+  AG ((op = pop & !empty & s.size = some_size) ->
+        AX s.size = some_size - 1)
+
+-- (h) When some number is popped from a non-empty stack,
+--     then in the current step the output variable of the
+--     stack is equal to the popped number.
+CTLSPEC
+  AG ((op = pop & !empty) -> s.output = s.values[s.size - 1])
+
+-- (i) An empty stack remains empty after a pop operation.
+CTLSPEC
+  AG ((op = pop & empty) -> AX empty)
+
+-- (j) Whenever the stack is full, there exists a path in which the
+-- stack stays full forever or it remains full until a pop.
+CTLSPEC
+  AG (full -> ((EG full) | E[full U op = pop]))
+
+-- Homework starts below
+
+-- (k) It is possible for the stack to never be full.
+CTLSPEC
+  
+EF EG (!full)
+-- (l) It is impossible for the stack to never be empty.
+CTLSPEC
+  AG EF (empty)
+
+
+
+-- (m) In all states reachable from the starting state in three steps
+--     the stack is not full.
+CTLSPEC
+
+TRUE
+  -- AG (init -> AX AX AX AG(!full))
+
+
+
+
+
+-- (n) Whenever the stack is full, there are two equal numbers in the stack.
+CTLSPEC
+  AG (full -> ( ( s.values[4] = s.values[3] | s.values[4] = s.values[2] | s.values[4] = s.values[1] | s.values[4] = s.values[0])
+   | (s.values[3] = s.values[2] | s.values[3] = s.values[1] | s.values[3] = s.values[0])
+    | (s.values[2] = s.values[1] | s.values[2] = s.values[0])
+    | (s.values[1] = s.values[0]) ) )
+
+-- (o) If there exists a number such that every value pushed onto the stack
+--     is equal to that number, then every value popped from the stack is
+--     also equal to that number.
+LTLSPEC
+  G (F X ( (op = push & number = some_number) -> X (op = pop -> s.output = some_number)) )
+
+-- (p) If the stack eventually becomes full and remains full, then there
+--     must exist a point from which on there are no pop operations.
+LTLSPEC
+--F (G (full-> G op != pop ))
+G (F full & (G full) -> F G op != pop) 
+  
+
+-- (q) From every state where the stack is full and the current operation
+--     is a pop it is possible to reach a state where the stack is empty
+--     in exactly five steps.
+CTLSPEC
+
+AG ((full & op = pop) -> EX (EX (EX ( EX (EX empty)))))
+
+
+-- (r) If the stack is both empty infinitely often and full infinitely often,
+--     then there are also infinitely many time steps where it has size 2.
+LTLSPEC
+  (G (F empty) & G (F full)) -> (G F (s.size = 2))
+
+-- (s) Whenever the stack is empty and the current operation is `none`, there
+--     exists a sequence of steps ending with a full stack where the top
+--     element of the stack (if it exists) is 3 for all intermediate states.
+CTLSPEC
+
+--AG( (empty & op = none) -> (EF(full) & E G ((s.size > 0) -> s.values[s.size - 1] = 3)))
+AG ((empty & op = none) -> EF (full & AG (AX (empty | s.values[s.size - 1] = 3))))
+
+
+-- (t) Whenever the stack is not full and a value is pushed, then, at the next
+--     time where the stack size is back to the current size, the operation
+--     must be a pop and the popped value must be the current value.
+-- Hint: This will most likely require a "weak until" subformula. Refer to the
+--       lecture slides for how to encode it using "strong until".
+--CTLSPEC
+--AG ((!full & number = some_number & size = some_size & op = push )-> A( size > some_size U ((size = some_size & op = pop & s.output = some_number ))))
+
+--CTLSPEC 
+--A ((!full & number = some_number & s.size = some_size & op = push) -> 
+      --     A (s.size > some_size U (s.size = some_size & op = pop & s.output = some_number)))
+
+
+--CTLSPEC 
+--A ((!full & number = some_number & s.size = some_size & op = push) -> 
+        --   A (s.size > some_size & AF (s.size = some_size & AG (op = pop & s.output = some_number))))
+
+ --CTLSPEC 
+   --       AG [ (!full & number = some_number & s.size = some_size & op = push) -> 
+     --      EF (s.size = some_size & AG (op = pop & s.output = some_number)) ]
+--CTLSPEC 
+--A [ (!full & number = some_number & s.size = some_size & op = push) -> 
+--           A [ EF (s.size = some_size) & EF AG (op = pop & s.output = some_number) ] ]
+
+CTLSPEC
+ --AG (!full & number = some_number & s.size = some_size & op = push) -> (TRUE A U TRUE)
+           --EF (s.size = some_size) & EF AG (s.size = some_size & op = pop & s.output = some_number)]
+
+AG (
+  (!full & op = push) ->
+  AX (s.size = some_size -> (op = pop & s.output = some_value))
+)
